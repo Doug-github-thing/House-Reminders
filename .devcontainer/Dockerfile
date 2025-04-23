@@ -11,5 +11,5 @@ ENV PYTHONUNBUFFERED 1
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #     && apt-get -y install --no-install-recommends <your-package-list-here>
 
-
+RUN pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
