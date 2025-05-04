@@ -5,6 +5,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+import yagmail
+
 # For reading sensitive info
 import os
 from dotenv import load_dotenv
@@ -23,14 +25,14 @@ def get_data():
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists("google/token.json"):
-        creds = Credentials.from_authorized_user_file("google/token.json", SCOPES)
+    if os.path.exists("google_sheets_creds/token.json"):
+        creds = Credentials.from_authorized_user_file("google_sheets_creds/token.json", SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file("google/credentials.json", SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file("google_sheets_creds/credentials.json", SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open("google/token.json", "w") as token:
@@ -46,7 +48,7 @@ def get_data():
             .get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME)
             .execute()
         )
-        print(sheet.values())
+
         values = result.get("values", [])
         print(values)
 
@@ -59,3 +61,13 @@ def get_data():
     except HttpError as err:
         print(err)
         return
+
+def send_email(data):
+    yag = yagmail.SMTP(os.getenv("HOST_EMAIL"), oauth2_file="./gmail_creds/oauth2_creds.json")
+    body = "Hemyo I'm Doug's application for checking on maintenance deadlines. At this moment, here's the raw unprocessed data:\n"
+    for line in data:
+        for item in line:
+            body += item
+            body += "\t"
+        body += "\n"
+    yag.send(os.getenv('TARGET_EMAIL'), 'Hemmo Muffim!', body)
