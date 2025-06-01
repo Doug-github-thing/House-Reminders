@@ -12,6 +12,8 @@ import yagmail
 import os
 from dotenv import load_dotenv
 
+import datetime
+
 load_dotenv()
 
 # If modifying these scopes, delete the file token.json.
@@ -61,15 +63,56 @@ def get_data():
         headers = values.pop(0)
         df = pd.DataFrame(values, columns=headers)
 
-        return df
+        return Sheet(df)
 
     except HttpError as err:
         print(err)
         return
 
+
 def send_email(data):
     yag = yagmail.SMTP(os.getenv("HOST_EMAIL"), oauth2_file="./gmail_creds/oauth2_creds.json")
     if data is None:
         yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents="Error reading data from sheet")
-    yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents=data)
+    content = data
+    if type(data) == list:
+        content = ""
+        for item in data:
+            if type(item) != str:
+                content += item.to_string(index=False)
+            else:
+                content += item
+    yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents=content)
     yag.close()
+
+
+class Sheet:
+    
+    ## Holds data as a pandas dataframe constructed based on structure of the Google Sheet
+    def __init__(self, df):
+        self.df = df
+        # Convert all dates from '01 Jan 1970' format to datetime '1970-01-01' format
+        self.df['Due'] = self.df['Due'].apply(lambda x:
+            datetime.datetime.strptime(str(x), "%d %b %Y").date())
+        self.df['Done'] = self.df['Done'].apply(lambda x:
+            datetime.datetime.strptime(str(x), "%d %b %Y").date())
+
+    # Return a printable dataframe of items due between today and @days number of days from now
+    def get_due_soon(self, days):
+        today = datetime.datetime.today().date()
+        later_date = today + datetime.timedelta(days=days)
+        filtered_df = self.df.loc[(self.df["Due"] >= today) & (self.df["Due"] < later_date)]
+        return self.format(filtered_df)
+    
+    # Return a printable dataframe of items past due
+    def get_overdue(self):
+        today = datetime.datetime.today().date()
+        filtered_df = self.df.loc[self.df["Due"] < today]
+        return self.format(filtered_df)
+
+    def format(self, df):
+        filtered_df = df.loc[:,("Activity", "Due")]
+        # Convert all dates back from datetime '1970-01-01' format to readable '01 Jan 1970'
+        filtered_df['Due'] = filtered_df['Due'].apply(lambda x:
+            datetime.datetime.strftime(x, "%d %b %Y"))
+        return filtered_df
