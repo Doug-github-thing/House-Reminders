@@ -35,7 +35,7 @@ def get_data():
             flow = InstalledAppFlow.from_client_secrets_file("google_sheets_creds/credentials.json", SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open("google/token.json", "w") as token:
+        with open("google_sheets_creds/token.json", "w") as token:
             token.write(creds.to_json())
 
     try:
@@ -50,7 +50,7 @@ def get_data():
         )
 
         values = result.get("values", [])
-        print(values)
+        # print(values)
 
         if not values:
             print("No data found.")
@@ -65,9 +65,14 @@ def get_data():
 def send_email(data):
     yag = yagmail.SMTP(os.getenv("HOST_EMAIL"), oauth2_file="./gmail_creds/oauth2_creds.json")
     body = "Hemyo I'm Doug's application for checking on maintenance deadlines. At this moment, here's the raw unprocessed data:\n"
-    for line in data:
-        for item in line:
-            body += item
-            body += "\t"
-        body += "\n"
-    yag.send(os.getenv('TARGET_EMAIL'), 'Hemmo Muffim!', body)
+    if not data:
+        yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents="No data")
+    else:
+        for line in data:
+            for item in line:
+                body += item
+                body += "\t"
+            body += "\n"
+        yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents=body)
+    yag.close()
+    yag.login
