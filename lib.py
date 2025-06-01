@@ -70,19 +70,28 @@ def get_data():
         return
 
 
+# Expects a list of strings. Each gets added to the body of the email_template.html, then returned as str
+def format_email_html(lst):
+
+    entries = ""
+    for entry in lst:
+        entries += entry
+
+    with open("email_template.html", "r") as email:
+        file_str = ""
+        for line in email.readlines():
+            file_str += line
+        return file_str.replace("<!-- ADD BODY ENTRIES HERE -->", entries)
+    
+    return None
+
 def send_email(data):
     yag = yagmail.SMTP(os.getenv("HOST_EMAIL"), oauth2_file="./gmail_creds/oauth2_creds.json")
+    subject = "Muffim House Reminder Email - "
+    subject += datetime.datetime.today().date().strftime("%d %b %Y")
     if data is None:
-        yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents="Error reading data from sheet")
-    content = data
-    if type(data) == list:
-        content = ""
-        for item in data:
-            if type(item) != str:
-                content += item.to_string(index=False)
-            else:
-                content += item
-    yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents=content)
+        yag.send(to=os.getenv("TARGET_EMAIL"), subject=subject, contents="Error reading data from sheet")
+    yag.send(to=os.getenv("TARGET_EMAIL"), subject=subject, contents=data)
     yag.close()
 
 
@@ -115,4 +124,4 @@ class Sheet:
         # Convert all dates back from datetime '1970-01-01' format to readable '01 Jan 1970'
         filtered_df['Due'] = filtered_df['Due'].apply(lambda x:
             datetime.datetime.strftime(x, "%d %b %Y"))
-        return filtered_df
+        return filtered_df.to_html(index=False)
