@@ -7,8 +7,8 @@ services:
       dockerfile: .devcontainer/Dockerfile
 
     volumes:
-      - ../..:/app
+      - ..:/workspace
 
-    working_dir: /app
+    working_dir: /workspace
 
     command: python3 main.py
