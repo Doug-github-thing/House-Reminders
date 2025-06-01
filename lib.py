@@ -4,6 +4,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import pandas as pd
 
 import yagmail
 
@@ -50,13 +51,17 @@ def get_data():
         )
 
         values = result.get("values", [])
-        # print(values)
 
         if not values:
             print("No data found.")
             return
 
-        return values
+        # At this point, values is a list of lists.
+        # First list the header row. Pop this off, and convert to Pandas DF.
+        headers = values.pop(0)
+        df = pd.DataFrame(values, columns=headers)
+
+        return df
 
     except HttpError as err:
         print(err)
@@ -64,15 +69,7 @@ def get_data():
 
 def send_email(data):
     yag = yagmail.SMTP(os.getenv("HOST_EMAIL"), oauth2_file="./gmail_creds/oauth2_creds.json")
-    body = "Hemyo I'm Doug's application for checking on maintenance deadlines. At this moment, here's the raw unprocessed data:\n"
-    if not data:
-        yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents="No data")
-    else:
-        for line in data:
-            for item in line:
-                body += item
-                body += "\t"
-            body += "\n"
-        yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents=body)
+    if data is None:
+        yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents="Error reading data from sheet")
+    yag.send(to=os.getenv("TARGET_EMAIL"), subject="Automated House Reminders Email", contents=data)
     yag.close()
-    yag.login

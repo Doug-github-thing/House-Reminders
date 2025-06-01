@@ -12,5 +12,6 @@ ENV PYTHONUNBUFFERED 1
 #     && apt-get -y install --no-install-recommends <your-package-list-here>
 
 RUN pip install python-dotenv
+RUN pip install pandas
 RUN pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib yagmail[all]
 
